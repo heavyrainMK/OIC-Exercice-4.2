@@ -5,7 +5,7 @@ from streamlit_folium import folium_static
 import piexif
 import io
 
-# Mapping des valeurs EXIF aux labels en langage humain
+# Dictionnaires pour traduire les valeurs EXIF en descriptions compréhensibles
 options_orientation = {
     1: "Normal (0°)",
     3: "À l'envers (180°)",
@@ -84,7 +84,7 @@ def obtenir_donnees_exif(image):
         exif[nom_tag] = value
     return exif
 
-# Interface Streamlit
+# Interface utilisateur Streamlit
 st.title("Éditeur de métadonnées EXIF")
 fichier_charge = st.file_uploader("Choisissez une image...", type=["jpg", "jpeg"])
 
@@ -100,7 +100,7 @@ if fichier_charge is not None:
 
         exif_dict = piexif.load(image.info.get("exif", b""))
         
-        # Assurez-vous que les sections nécessaires des données EXIF sont présentes
+        # Vérifier et initialiser les sections nécessaires des données EXIF
         if "0th" not in exif_dict:
             exif_dict["0th"] = {}
         if "Exif" not in exif_dict:
@@ -157,6 +157,7 @@ if fichier_charge is not None:
         lon = st.number_input("Longitude", value=convertir_de_coord_exif(exif_dict["GPS"].get(piexif.GPSIFD.GPSLongitude, ((0, 1), (0, 1), (0, 1))), exif_dict["GPS"].get(piexif.GPSIFD.GPSLongitudeRef, 'E')))
 
         if st.button("Sauvegarder les modifications"):
+            # Mettre à jour les données EXIF avec les nouvelles valeurs
             exif_dict["0th"][piexif.ImageIFD.Make] = fabricant.encode('utf-8')
             exif_dict["0th"][piexif.ImageIFD.Model] = modele.encode('utf-8')
             exif_dict["0th"][piexif.ImageIFD.Orientation] = orientation
@@ -177,7 +178,6 @@ if fichier_charge is not None:
             exif_dict["Exif"][piexif.ExifIFD.SensingMethod] = int(detection)
             exif_dict["Exif"][piexif.ExifIFD.LensModel] = lens_model.encode('utf-8')
 
-            # Update GPS Info
             exif_dict["GPS"][piexif.GPSIFD.GPSLatitude] = convertir_en_coord_exif(lat, 'lat')[0]
             exif_dict["GPS"][piexif.GPSIFD.GPSLatitudeRef] = 'N' if lat >= 0 else 'S'
             exif_dict["GPS"][piexif.GPSIFD.GPSLongitude] = convertir_en_coord_exif(lon, 'lon')[0]
@@ -188,9 +188,11 @@ if fichier_charge is not None:
             exif_dict["GPS"][piexif.GPSIFD.GPSDateStamp] = gps_date_stamp.encode('utf-8')
             exif_dict["GPS"][piexif.GPSIFD.GPSVersionID] = tuple(map(int, gps_version_id.split(',')))
 
+            # Sauvegarder l'image avec les nouvelles métadonnées
             exif_bytes = piexif.dump(exif_dict)
             with io.BytesIO() as output:
                 image.save(output, format="jpeg", exif=exif_bytes)
+                # Télécharger l'image modifiée
                 st.download_button(
                     label="Télécharger l'image modifiée",
                     data=output.getvalue(),
