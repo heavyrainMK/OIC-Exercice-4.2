@@ -1,7 +1,6 @@
 import streamlit as st
 from PIL import Image, ExifTags
 from PIL.ExifTags import TAGS, GPSTAGS
-import folium
 from streamlit_folium import folium_static
 import piexif
 import io
