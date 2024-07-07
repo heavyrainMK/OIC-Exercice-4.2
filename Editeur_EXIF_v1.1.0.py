@@ -82,10 +82,13 @@ def convertir_en_coord_exif(valeur, ref):
 
 # Fonction pour convertir des coordonnées EXIF en valeurs décimales
 def convertir_de_coord_exif(coords, ref):
+    # Convertir les degrés, minutes et secondes de format EXIF en valeurs décimales
     deg = coords[0][0] / coords[0][1]
     min = coords[1][0] / coords[1][1]
     sec = coords[2][0] / coords[2][1] / 100
+    # Calculer la valeur décimale totale
     valeur = deg + (min / 60) + (sec / 3600)
+    # Retourner la valeur, positive ou négative selon la référence (N, E, S, W)
     return valeur if ref in ['N', 'E'] else -valeur
 
 # Fonction pour extraire les métadonnées EXIF d'une image
