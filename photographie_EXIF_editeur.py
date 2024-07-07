@@ -1,10 +1,19 @@
-import streamlit as st
-from PIL import Image, ExifTags
-from PIL.ExifTags import TAGS, GPSTAGS
-import folium
-from streamlit_folium import folium_static
-import piexif
-import io
+# *******************************************************
+# Nom ......... : photographie_EXIF_editeur.py
+# Rôle ........ : Application d'édition de métadonnées EXIF pour les images
+# Auteur ...... : Maxim Khomenko
+# Version ..... : V1.1.1 du 31/05/2024
+# Licence ..... : Réalisé dans le cadre du cours de l'Architecture des Machines
+# Usage ....... : Exécuter le script avec "streamlit run photographie_EXIF_editeur.py" pour démarrer l'application
+# *******************************************************
+
+import streamlit as st  # Importer la bibliothèque Streamlit pour créer des applications web interactives
+from PIL import Image, ExifTags  # Importer le module Image de PIL (Pillow) pour manipuler les images et ExifTags pour accéder aux tags EXIF
+from PIL.ExifTags import TAGS, GPSTAGS  # Importer les dictionnaires TAGS et GPSTAGS de PIL pour traduire les identifiants de tags EXIF en noms lisibles
+import folium  # Importer la bibliothèque Folium pour créer des cartes interactives
+from streamlit_folium import folium_static  # Importer la fonction folium_static de streamlit_folium pour afficher des cartes Folium dans une application Streamlit
+import piexif  # Importer la bibliothèque piexif pour manipuler les métadonnées EXIF des images
+import io  # Importer le module io pour travailler avec les flux de données en mémoire
 
 # Dictionnaires pour traduire les valeurs EXIF en descriptions compréhensibles
 options_orientation = {
@@ -63,51 +72,59 @@ options_detection = {
 
 # Fonction pour convertir des coordonnées en format EXIF
 def convertir_en_coord_exif(valeur, ref):
+    # Calcul des degrés, minutes et secondes à partir de la valeur absolue des coordonnées
     deg, min, sec = abs(valeur), (abs(valeur) * 60) % 60, (abs(valeur) * 3600) % 60
-    return ((int(deg), 1), (int(min), 1), (int(sec * 100), 100)), 'N' if ref in ['lat', 'latitude'] and valeur >= 0 else 'S' if ref in ['lat', 'latitude'] else 'E' if valeur >= 0 else 'W'
+    # Retourne les coordonnées EXIF au format tuple (degrés, minutes, secondes) et la référence N/S/E/W
+    return ((int(deg), 1), (int(min), 1), (int(sec * 100), 100)), \
+           'N' if ref in ['lat', 'latitude'] and valeur >= 0 else \
+           'S' if ref in ['lat', 'latitude'] else \
+           'E' if valeur >= 0 else 'W'
 
 # Fonction pour convertir des coordonnées EXIF en valeurs décimales
 def convertir_de_coord_exif(coords, ref):
+    # Convertir les degrés, minutes et secondes de format EXIF en valeurs décimales
     deg = coords[0][0] / coords[0][1]
     min = coords[1][0] / coords[1][1]
     sec = coords[2][0] / coords[2][1] / 100
+    # Calculer la valeur décimale totale
     valeur = deg + (min / 60) + (sec / 3600)
+    # Retourner la valeur, positive ou négative selon la référence (N, E, S, W)
     return valeur if ref in ['N', 'E'] else -valeur
 
 # Fonction pour extraire les métadonnées EXIF d'une image
 def obtenir_donnees_exif(image):
-    donnees_exif = image._getexif()
-    if not donnees_exif:
-        return {}
-    exif = {}
-    for tag, value in donnees_exif.items():
-        nom_tag = TAGS.get(tag, tag)
-        exif[nom_tag] = value
-    return exif
+    donnees_exif = image._getexif()  # Utilise la méthode _getexif() pour obtenir les métadonnées EXIF de l'image
+    if not donnees_exif:  # Vérifie si les métadonnées EXIF sont présentes
+        return {}  # Si aucune métadonnée n'est trouvée, retourne un dictionnaire vide
 
-# Interface utilisateur Streamlit
-st.title("Éditeur de métadonnées EXIF")
-fichier_charge = st.file_uploader("Choisissez une image...", type=["jpg", "jpeg"])
+    exif = {}  # Initialise un dictionnaire pour stocker les métadonnées EXIF avec des noms de tags lisibles
+    for tag, value in donnees_exif.items():  # Parcourt chaque tag et sa valeur dans les métadonnées EXIF
+        nom_tag = TAGS.get(tag, tag)  # Utilise la table de correspondance TAGS pour obtenir un nom lisible du tag. Si le tag n'est pas trouvé, utilise le tag lui-même
+        exif[nom_tag] = value  # Ajoute le nom du tag et sa valeur au dictionnaire EXIF
+    return exif  # Retourne le dictionnaire des métadonnées EXIF
 
-if fichier_charge is not None:
-    image = Image.open(fichier_charge)
-    donnees_exif = obtenir_donnees_exif(image)
-    if not donnees_exif:
-        st.write("Pas de métadonnées EXIF trouvées dans l'image.")
+st.title("Éditeur de métadonnées EXIF")  # Titre de l'application Streamlit
+fichier_charge = st.file_uploader("Choisissez une image...", type=["jpg", "jpeg"])  # Créer un widget pour uploader un fichier image
+
+if fichier_charge is not None:  # Si un fichier est chargé
+    image = Image.open(fichier_charge)  # Ouvrir l'image en utilisant PIL
+    donnees_exif = obtenir_donnees_exif(image)  # Obtenir les données EXIF de l'image
+    if not donnees_exif:  # Si aucune donnée EXIF n'est trouvée
+        st.write("Pas de métadonnées EXIF trouvées dans l'image.")  # Afficher un message indiquant qu'aucune donnée EXIF n'est trouvée
     else:
-        st.image(image, caption='Image chargée', use_column_width=True)
-        st.write("**Métadonnées EXIF :**")
-        st.write(donnees_exif)
+        st.image(image, caption='Image chargée', use_column_width=True)  # Afficher l'image chargée
+        st.write("**Métadonnées EXIF :**")  # Afficher un titre pour les métadonnées EXIF
+        st.write(donnees_exif)  # Afficher les données EXIF
 
-        exif_dict = piexif.load(image.info.get("exif", b""))
+        exif_dict = piexif.load(image.info.get("exif", b""))  # Charger les métadonnées EXIF de l'image sous forme de dictionnaire
         
         # Vérifier et initialiser les sections nécessaires des données EXIF
         if "0th" not in exif_dict:
-            exif_dict["0th"] = {}
+            exif_dict["0th"] = {}  # Initialiser la section "0th" si elle n'existe pas
         if "Exif" not in exif_dict:
-            exif_dict["Exif"] = {}
+            exif_dict["Exif"] = {}  # Initialiser la section "Exif" si elle n'existe pas
         if "GPS" not in exif_dict:
-            exif_dict["GPS"] = {}
+            exif_dict["GPS"] = {}  # Initialiser la section "GPS" si elle n'existe pas
 
         # Obtenir les valeurs EXIF actuelles ou définir des valeurs par défaut
         orientation_actuelle = exif_dict["0th"].get(piexif.ImageIFD.Orientation, 1)
@@ -128,6 +145,7 @@ if fichier_charge is not None:
         # Afficher le formulaire
         st.subheader("Modifier les métadonnées EXIF")
 
+        # Champs de texte pour les métadonnées de base
         fabricant = st.text_input("Fabricant", value=exif_dict["0th"].get(piexif.ImageIFD.Make, b'').decode('utf-8'))
         modele = st.text_input("Modèle", value=exif_dict["0th"].get(piexif.ImageIFD.Model, b'').decode('utf-8'))
         orientation = st.selectbox("Orientation", options=list(options_orientation.keys()), format_func=lambda x: options_orientation[x], index=list(options_orientation.keys()).index(orientation_actuelle))
@@ -136,6 +154,7 @@ if fichier_charge is not None:
         artiste = st.text_input("Artiste", value=exif_dict["0th"].get(piexif.ImageIFD.Artist, b'').decode('utf-8'))
         droits_auteur = st.text_input("Droits d'auteur", value=exif_dict["0th"].get(piexif.ImageIFD.Copyright, b'').decode('utf-8'))
 
+        # Champs numériques pour les métadonnées EXIF techniques
         temps_exposition = st.number_input("Temps d'exposition (en secondes)", value=exif_dict["Exif"].get(piexif.ExifIFD.ExposureTime, (1, 1))[0] / exif_dict["Exif"].get(piexif.ExifIFD.ExposureTime, (1, 1))[1])
         ouverture = st.number_input("Ouverture (f/)", value=exif_dict["Exif"].get(piexif.ExifIFD.FNumber, (1, 1))[0] / exif_dict["Exif"].get(piexif.ExifIFD.FNumber, (1, 1))[1])
         iso = st.number_input("ISO", value=exif_dict["Exif"].get(piexif.ExifIFD.ISOSpeedRatings, 100))
@@ -148,12 +167,14 @@ if fichier_charge is not None:
         detection = st.selectbox("Méthode de détection", options=list(options_detection.keys()), format_func=lambda x: options_detection[x], index=list(options_detection.keys()).index(detection_actuelle))
         lens_model = st.text_input("Modèle de l'objectif", value=exif_dict["Exif"].get(piexif.ExifIFD.LensModel, b'').decode('utf-8'))
 
+        # Champs pour les métadonnées GPS
         gps_version_id = st.text_input("Version GPS", value=",".join(map(str, exif_dict["GPS"].get(piexif.GPSIFD.GPSVersionID, (2, 2, 0, 0)))))
         gps_altitude = st.number_input("Altitude GPS (m)", value=exif_dict["GPS"].get(piexif.GPSIFD.GPSAltitude, (0, 1))[0] / exif_dict["GPS"].get(piexif.GPSIFD.GPSAltitude, (0, 1))[1])
         gps_speed = st.number_input("Vitesse GPS (m/s)", value=exif_dict["GPS"].get(piexif.GPSIFD.GPSSpeed, (0, 1))[0] / exif_dict["GPS"].get(piexif.GPSIFD.GPSSpeed, (0, 1))[1])
         gps_img_direction = st.number_input("Direction de l'image GPS", value=exif_dict["GPS"].get(piexif.GPSIFD.GPSImgDirection, (0, 1))[0] / exif_dict["GPS"].get(piexif.GPSIFD.GPSImgDirection, (0, 1))[1])
         gps_date_stamp = st.text_input("Date GPS", value=exif_dict["GPS"].get(piexif.GPSIFD.GPSDateStamp, b'').decode('utf-8'))
 
+        # Champs pour les coordonnées GPS
         lat = st.number_input("Latitude", value=convertir_de_coord_exif(exif_dict["GPS"].get(piexif.GPSIFD.GPSLatitude, ((0, 1), (0, 1), (0, 1))), exif_dict["GPS"].get(piexif.GPSIFD.GPSLatitudeRef, 'N')))
         lon = st.number_input("Longitude", value=convertir_de_coord_exif(exif_dict["GPS"].get(piexif.GPSIFD.GPSLongitude, ((0, 1), (0, 1), (0, 1))), exif_dict["GPS"].get(piexif.GPSIFD.GPSLongitudeRef, 'E')))
 
