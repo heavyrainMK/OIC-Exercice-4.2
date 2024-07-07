@@ -7,13 +7,13 @@
 # Usage ....... : Exécuter le script avec "streamlit run Editeur_EXIF_v1.1.0.py" pour démarrer l'application
 # *******************************************************
 
-import streamlit as st
-from PIL import Image, ExifTags
-from PIL.ExifTags import TAGS, GPSTAGS
-import folium
-from streamlit_folium import folium_static
-import piexif
-import io
+import streamlit as st  # Importer la bibliothèque Streamlit pour créer des applications web interactives
+from PIL import Image, ExifTags  # Importer le module Image de PIL (Pillow) pour manipuler les images et ExifTags pour accéder aux tags EXIF
+from PIL.ExifTags import TAGS, GPSTAGS  # Importer les dictionnaires TAGS et GPSTAGS de PIL pour traduire les identifiants de tags EXIF en noms lisibles
+import folium  # Importer la bibliothèque Folium pour créer des cartes interactives
+from streamlit_folium import folium_static  # Importer la fonction folium_static de streamlit_folium pour afficher des cartes Folium dans une application Streamlit
+import piexif  # Importer la bibliothèque piexif pour manipuler les métadonnées EXIF des images
+import io  # Importer le module io pour travailler avec les flux de données en mémoire
 
 # Dictionnaires pour traduire les valeurs EXIF en descriptions compréhensibles
 options_orientation = {
