@@ -103,6 +103,7 @@ def obtenir_donnees_exif(image):
         exif[nom_tag] = value  # Ajoute le nom du tag et sa valeur au dictionnaire EXIF
     return exif  # Retourne le dictionnaire des métadonnées EXIF
 
+# Interface utilisateur Streamlit
 st.title("Éditeur de métadonnées EXIF")  # Titre de l'application Streamlit
 fichier_charge = st.file_uploader("Choisissez une image...", type=["jpg", "jpeg"])  # Créer un widget pour uploader un fichier image
 
